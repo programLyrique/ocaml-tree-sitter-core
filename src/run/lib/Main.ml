@@ -90,7 +90,7 @@ let cmdline_term =
     in
     { source_file; input_kind; output_json; txt_stat; json_error_log }
   in
-  Term.(const combine
+  Cmdliner.Term.(const combine
         $ source_file_term
         $ input_json_term
         $ output_json_term
@@ -115,16 +115,18 @@ of the full CST by ocaml-tree-sitter."
 ]
 
 let parse_command_line ~lang =
-  let info =
-    Term.info
-      ~doc:(doc ~lang)
-      ~man:(man ~lang)
-      ("parse-" ^ lang)
+  let open Cmdliner in
+  let cmd =
+    Cmd.v
+      (Cmd.info ("parse-" ^ lang)
+         ~doc:(doc ~lang)
+         ~man:(man ~lang))
+      cmdline_term
   in
-  match Term.eval (cmdline_term, info) with
-  | `Error _ -> exit Exit.bad_command_line
-  | `Version | `Help -> exit 0
-  | `Ok config -> config
+  match Cmd.eval_value cmd with
+  | Ok (`Ok config) -> config
+  | Ok (`Version | `Help) -> exit 0
+  | Error _ -> exit Exit.bad_command_line
 
 let safe_run f =
   Printexc.record_backtrace true;

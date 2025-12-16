@@ -140,7 +140,8 @@ let simplify_cmd =
     `P "Check out bug reports at
         https://github.com/semgrep/ocaml-tree-sitter-core/issues.";
   ] in
-  let info = Term.info ~doc ~man "simplify" in
+  let open Cmdliner in
+  let info = Cmd.info ~doc ~man "simplify" in
   let config grammar output_path =
     Simplify { grammar; output_path }
   in
@@ -148,7 +149,7 @@ let simplify_cmd =
     const config
     $ grammar_term
     $ output_file_term) in
-  (cmdline_term, info)
+  Cmd.v info cmdline_term
 
 let to_js_cmd =
   let input_path_term =
@@ -209,7 +210,8 @@ let to_js_cmd =
     `P "Check out bug reports at
         https://github.com/semgrep/ocaml-tree-sitter-core/issues.";
   ] in
-  let info = Term.info ~doc ~man "to-js" in
+  let open Cmdliner in
+  let info = Cmd.info ~doc ~man "to-js" in
   let config input_path output_path sort_choices sort_rules strip normalize =
     let sort_choices, sort_rules, strip =
       normalize || sort_choices,
@@ -226,7 +228,7 @@ let to_js_cmd =
     $ sort_rules_term
     $ strip_term
     $ normalize_term) in
-  (cmdline_term, info)
+  Cmd.v info cmdline_term
 
 let gen_cmd =
   let config lang grammar out_dir =
@@ -254,13 +256,14 @@ let gen_cmd =
     `P "Check out bug reports at
       https://github.com/semgrep/ocaml-tree-sitter-core/issues.";
   ] in
+  let open Cmdliner in
   let version = "0.0.0" in
-  let info = Term.info ~version ~doc ~man "gen" in
+  let info = Cmd.info ~version ~doc ~man "gen" in
 
-  (cmdline_term, info)
+  Cmd.v info cmdline_term
 
 let root_cmd =
-  let root_term = Term.(ret (const ((`Help (`Pager, None))))) in
+  let open Cmdliner in
   let man = [
     `S Manpage.s_description;
     `P "Generate OCaml parsers based on tree-sitter grammars";
@@ -271,16 +274,15 @@ let root_cmd =
       https://github.com/semgrep/ocaml-tree-sitter-core/issues.";
   ] in
   let doc = "Generate OCaml parsers based on tree-sitter grammars" in
-  let info = Term.info ~man ~doc "ocaml-tree-sitter" in
-  (root_term, info)
-
-let subcommands = [gen_cmd; simplify_cmd; to_js_cmd]
+  let info = Cmd.info ~man ~doc "ocaml-tree-sitter" in
+  Cmd.group info ~default:(Term.ret (Term.const (`Help (`Pager, None)))) [gen_cmd; simplify_cmd; to_js_cmd]
 
 let parse_command_line () : cmd_conf =
-  match Term.eval_choice root_cmd subcommands with
-  | `Error _ -> exit 1
-  | `Version | `Help -> exit 0
-  | `Ok conf -> conf
+  let open Cmdliner in
+  match Cmd.eval_value root_cmd with
+  | Ok (`Ok conf) -> conf
+  | Ok (`Version | `Help) -> exit 0
+  | Error _ -> exit 1
 
 let main () =
   Printexc.record_backtrace true;
